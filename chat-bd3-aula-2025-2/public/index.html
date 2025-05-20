@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Mongo Database</title>
+    <link rel="stylesheet" href="./styles.css">
+    <!-- jQuery e Socket.IO via CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js "></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.8.1/socket.io.min.js "></script>
+</head>
+
+<body>
+    <div class="container">
+        <h1>APP DE CHAT COM MONGODB</h1>
+        <form id="chat">
+            <input type="text" name="username" id="username" placeholder="Digite seu nome de usuário">
+            <br>
+            <input type="text" name="message" id="message" placeholder="Digite sua mensagem">
+            <br>
+            <button type="submit">Enviar</button>
+            <div class="messages"></div>
+        </form>
+    </div>
+
+    <script>
+        // Conexão com o socket.io do backend
+        const socket = io('http://localhost:3000');
+
+        // Função de renderização de mensagem no navegador
+        function renderMessage(message) {
+            $('.messages').append('<div class="message"><strong>'
+                + message.usuario + ' ' + message.data_hora +
+                '</strong>: ' + message.message + '</div>');
+        }
+
+        // Recupera as mensagens anteriores ao conectar
+        socket.on('previousMessages', function(messages) {
+            for (let message of messages) {
+                renderMessage(message);
+            }
+        });
+
+        // Renderiza novas mensagens recebidas em tempo real
+        socket.on('receivedMessage', function(message) {
+            renderMessage(message);
+        });
+
+        // Captura o envio do formulário
+        $('#chat').submit(function(event){
+            event.preventDefault();
+
+            // Recupera os dados do formulário
+            var usuario = $('#username').val();
+            var mensagem = $('#message').val();
+
+            if (!usuario || !mensagem) return; // Evita enviar campos vazios
+
+            console.log('USUÁRIO: ' + usuario);
+            console.log('MENSAGEM: ' + mensagem);
+
+            // Data e hora atual
+            let data_hora_obj = new Date();
+            let data_hora_msg = `[${data_hora_obj.getDate()}/${data_hora_obj.getMonth()+1}/${data_hora_obj.getFullYear()} - ${data_hora_obj.getHours()}:${data_hora_obj.getMinutes()}:${data_hora_obj.getSeconds()}]`;
+
+            // Objeto da mensagem
+            var messageObject = {
+                usuario: usuario,
+                data_hora: data_hora_msg,
+                message: mensagem
+            };
+
+            // Renderiza a mensagem localmente
+            renderMessage(messageObject);
+
+            // Envia para o servidor
+            socket.emit('sendMessage', messageObject);
+
+            console.log('JSON: ' + JSON.stringify(messageObject));
+
+            // Limpa os campos após enviar
+            $('#username').val('');
+            $('#message').val('');
+        });
+    </script>
+</body>
+</html>
